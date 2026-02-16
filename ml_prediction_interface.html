@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ML Prediction API - Interactive Interface</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            padding: 40px;
+        }
+
+        .input-section, .output-section {
+            background: #f8f9fa;
+            padding: 30px;
+            border-radius: 12px;
+        }
+
+        .section-title {
+            font-size: 1.5em;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #555;
+        }
+
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 30px;
+        }
+
+        button {
+            flex: 1;
+            padding: 15px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .btn-predict {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-clear {
+            background: #6c757d;
+            color: white;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .result-card {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            border-left: 5px solid #667eea;
+        }
+
+        .result-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .result-item:last-child {
+            border-bottom: none;
+        }
+
+        .result-label {
+            font-weight: 500;
+            color: #666;
+        }
+
+        .result-value {
+            font-weight: 600;
+            color: #333;
+            font-size: 1.1em;
+        }
+
+        .prediction-churn {
+            color: #dc3545;
+            background: #ffe0e3;
+            padding: 5px 15px;
+            border-radius: 20px;
+        }
+
+        .prediction-no-churn {
+            color: #28a745;
+            background: #d4edda;
+            padding: 5px 15px;
+            border-radius: 20px;
+        }
+
+        .confidence-high {
+            color: #28a745;
+        }
+
+        .confidence-medium {
+            color: #ffc107;
+        }
+
+        .confidence-low {
+            color: #dc3545;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+
+        .info-box {
+            background: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .examples {
+            margin-top: 20px;
+        }
+
+        .example-btn {
+            background: #e9ecef;
+            color: #495057;
+            padding: 8px 15px;
+            border-radius: 6px;
+            border: none;
+            margin: 5px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .example-btn:hover {
+            background: #dee2e6;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .probability-bar {
+            width: 100%;
+            height: 30px;
+            background: #e9ecef;
+            border-radius: 15px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+
+        .probability-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #28a745, #ffc107, #dc3545);
+            transition: width 0.5s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🤖 ML Prediction System</h1>
+            <p>Customer Churn Prediction - Interactive Interface</p>
+        </div>
+
+        <div class="main-content">
+            <!-- Input Section -->
+            <div class="input-section">
+                <h2 class="section-title">📝 Input Features</h2>
+                
+                <div class="info-box">
+                    <strong>ℹ️ How to use:</strong><br>
+                    Fill in the customer details below and click "Predict" to see if they're likely to churn.
+                </div>
+
+                <form id="predictionForm">
+                    <div class="form-group">
+                        <label for="age">Age</label>
+                        <input type="number" id="age" name="age" min="18" max="100" value="35" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="tenure">Tenure (months)</label>
+                        <input type="number" id="tenure" name="tenure" min="0" max="72" value="12" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="monthly_charges">Monthly Charges ($)</label>
+                        <input type="number" id="monthly_charges" name="monthly_charges" step="0.01" min="0" value="65.50">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="total_charges">Total Charges ($)</label>
+                        <input type="number" id="total_charges" name="total_charges" step="0.01" min="0" value="786.00">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="contract_type">Contract Type</label>
+                        <select id="contract_type" name="contract_type">
+                            <option value="Month-to-month">Month-to-month</option>
+                            <option value="One year">One year</option>
+                            <option value="Two year">Two year</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="payment_method">Payment Method</label>
+                        <select id="payment_method" name="payment_method">
+                            <option value="Electronic check">Electronic check</option>
+                            <option value="Mailed check">Mailed check</option>
+                            <option value="Bank transfer">Bank transfer</option>
+                            <option value="Credit card">Credit card</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="internet_service">Internet Service</label>
+                        <select id="internet_service" name="internet_service">
+                            <option value="Fiber optic">Fiber optic</option>
+                            <option value="DSL">DSL</option>
+                            <option value="No">No</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="online_security">Online Security</label>
+                        <select id="online_security" name="online_security">
+                            <option value="No">No</option>
+                            <option value="Yes">Yes</option>
+                            <option value="No internet service">No internet service</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="tech_support">Tech Support</label>
+                        <select id="tech_support" name="tech_support">
+                            <option value="No">No</option>
+                            <option value="Yes">Yes</option>
+                            <option value="No internet service">No internet service</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="streaming_tv">Streaming TV</label>
+                        <select id="streaming_tv" name="streaming_tv">
+                            <option value="No">No</option>
+                            <option value="Yes">Yes</option>
+                            <option value="No internet service">No internet service</option>
+                        </select>
+                    </div>
+
+                    <div class="button-group">
+                        <button type="submit" class="btn-predict">🎯 Predict</button>
+                        <button type="button" class="btn-clear" onclick="clearForm()">🔄 Clear</button>
+                    </div>
+                </form>
+
+                <div class="examples">
+                    <strong>Quick Examples:</strong><br>
+                    <button class="example-btn" onclick="loadExample1()">High Risk</button>
+                    <button class="example-btn" onclick="loadExample2()">Low Risk</button>
+                    <button class="example-btn" onclick="loadExample3()">Medium Risk</button>
+                </div>
+            </div>
+
+            <!-- Output Section -->
+            <div class="output-section">
+                <h2 class="section-title">📊 Prediction Results</h2>
+
+                <div class="loading" id="loading">
+                    <div class="spinner"></div>
+                    <p style="margin-top: 10px;">Analyzing...</p>
+                </div>
+
+                <div id="results" style="display: none;">
+                    <div class="result-card">
+                        <div class="result-item">
+                            <span class="result-label">Prediction:</span>
+                            <span class="result-value" id="predictionLabel"></span>
+                        </div>
+                        <div class="result-item">
+                            <span class="result-label">Confidence:</span>
+                            <span class="result-value" id="confidence"></span>
+                        </div>
+                        <div class="result-item">
+                            <span class="result-label">Probability:</span>
+                            <span class="result-value" id="probability"></span>
+                        </div>
+                        <div class="probability-bar">
+                            <div class="probability-fill" id="probabilityBar"></div>
+                        </div>
+                    </div>
+
+                    <div class="result-card" style="border-left-color: #28a745;">
+                        <h3 style="margin-bottom: 15px; color: #333;">💡 Recommendation</h3>
+                        <p id="recommendation" style="color: #666; line-height: 1.6;"></p>
+                    </div>
+
+                    <div class="result-card" style="border-left-color: #ffc107;">
+                        <h3 style="margin-bottom: 10px; color: #333;">⏱️ Processing Info</h3>
+                        <div class="result-item">
+                            <span class="result-label">Response Time:</span>
+                            <span class="result-value" id="processingTime"></span>
+                        </div>
+                        <div class="result-item">
+                            <span class="result-label">Timestamp:</span>
+                            <span class="result-value" id="timestamp"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="error-message" id="errorMessage"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8000';
+
+        document.getElementById('predictionForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            await makePrediction();
+        });
+
+        async function makePrediction() {
+            const form = document.getElementById('predictionForm');
+            const formData = new FormData(form);
+            
+            // Build features object
+            const features = {};
+            for (let [key, value] of formData.entries()) {
+                // Convert numbers
+                if (['age', 'tenure'].includes(key)) {
+                    features[key] = parseInt(value);
+                } else if (['monthly_charges', 'total_charges'].includes(key)) {
+                    features[key] = parseFloat(value);
+                } else {
+                    features[key] = value;
+                }
+            }
+
+            // Show loading
+            document.getElementById('loading').classList.add('show');
+            document.getElementById('results').style.display = 'none';
+            document.getElementById('errorMessage').classList.remove('show');
+
+            const startTime = Date.now();
+
+            try {
+                console.log('Sending request with features:', features);
+                
+                const response = await fetch(`${API_BASE}/predict`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ features })
+                });
+
+                const endTime = Date.now();
+                const responseTime = endTime - startTime;
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    console.error('API Error Response:', errorData);
+                    
+                    // Handle validation errors
+                    if (errorData.detail && Array.isArray(errorData.detail)) {
+                        const errorMessages = errorData.detail.map(err => 
+                            `${err.loc ? err.loc.join(' -> ') : 'Field'}: ${err.msg}`
+                        ).join('\n');
+                        throw new Error(`Validation Error:\n${errorMessages}`);
+                    } else if (errorData.detail) {
+                        throw new Error(errorData.detail);
+                    } else {
+                        throw new Error(`API Error: ${response.status} ${response.statusText}`);
+                    }
+                }
+
+                const data = await response.json();
+                console.log('API Response:', data);
+                displayResults(data, responseTime);
+
+            } catch (error) {
+                console.error('Error:', error);
+                showError(error.message || 'Failed to connect to API. Make sure the API is running on http://localhost:8000');
+            } finally {
+                document.getElementById('loading').classList.remove('show');
+            }
+        }
+
+        function displayResults(data, responseTime) {
+            // Show results section
+            document.getElementById('results').style.display = 'block';
+
+            // Prediction label
+            const predictionLabel = data.prediction === 1 ? 'Will Churn' : 'Will Not Churn';
+            const predictionClass = data.prediction === 1 ? 'prediction-churn' : 'prediction-no-churn';
+            document.getElementById('predictionLabel').innerHTML = `<span class="${predictionClass}">${predictionLabel}</span>`;
+
+            // Confidence
+            const confidenceClass = `confidence-${data.confidence}`;
+            document.getElementById('confidence').innerHTML = `<span class="${confidenceClass}">${data.confidence.toUpperCase()}</span>`;
+
+            // Probability
+            const probabilityPercent = (data.probability * 100).toFixed(1);
+            document.getElementById('probability').textContent = `${probabilityPercent}%`;
+
+            // Probability bar
+            const probabilityBar = document.getElementById('probabilityBar');
+            probabilityBar.style.width = `${probabilityPercent}%`;
+            probabilityBar.textContent = `${probabilityPercent}%`;
+
+            // Recommendation
+            const recommendation = getRecommendation(data.prediction, data.probability, data.confidence);
+            document.getElementById('recommendation').textContent = recommendation;
+
+            // Processing info
+            document.getElementById('processingTime').textContent = `${responseTime}ms`;
+            document.getElementById('timestamp').textContent = new Date(data.timestamp).toLocaleString();
+        }
+
+        function getRecommendation(prediction, probability, confidence) {
+            if (prediction === 1) {
+                if (confidence === 'high') {
+                    return '⚠️ HIGH RISK: This customer is very likely to churn. Immediate retention efforts recommended: offer special discounts, upgrade options, or personalized support.';
+                } else if (confidence === 'medium') {
+                    return '⚠️ MEDIUM RISK: This customer shows signs of potential churn. Consider proactive outreach, satisfaction surveys, or loyalty program enrollment.';
+                } else {
+                    return '⚠️ LOW-MEDIUM RISK: Uncertain prediction. Monitor customer engagement and consider preventive measures like regular check-ins.';
+                }
+            } else {
+                if (confidence === 'high') {
+                    return '✅ LOW RISK: This customer is very likely to stay. Maintain current service quality and consider upselling opportunities.';
+                } else if (confidence === 'medium') {
+                    return '✅ LOW-MEDIUM RISK: Customer likely to stay but monitor for changes in behavior or satisfaction levels.';
+                } else {
+                    return '⚠️ UNCERTAIN: Prediction is uncertain. Recommend gathering more data or monitoring customer engagement closely.';
+                }
+            }
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.innerHTML = `<strong>❌ Error:</strong><br><pre style="white-space: pre-wrap; margin-top: 10px;">${message}</pre>`;
+            errorDiv.classList.add('show');
+        }
+
+        function clearForm() {
+            document.getElementById('predictionForm').reset();
+            document.getElementById('results').style.display = 'none';
+            document.getElementById('errorMessage').classList.remove('show');
+        }
+
+        function loadExample1() {
+            // High risk example
+            document.getElementById('age').value = 28;
+            document.getElementById('tenure').value = 3;
+            document.getElementById('monthly_charges').value = 89.99;
+            document.getElementById('total_charges').value = 269.97;
+            document.getElementById('contract_type').value = 'Month-to-month';
+            document.getElementById('payment_method').value = 'Electronic check';
+            document.getElementById('internet_service').value = 'Fiber optic';
+            document.getElementById('online_security').value = 'No';
+            document.getElementById('tech_support').value = 'No';
+            document.getElementById('streaming_tv').value = 'Yes';
+        }
+
+        function loadExample2() {
+            // Low risk example
+            document.getElementById('age').value = 52;
+            document.getElementById('tenure').value = 48;
+            document.getElementById('monthly_charges').value = 65.50;
+            document.getElementById('total_charges').value = 3144.00;
+            document.getElementById('contract_type').value = 'Two year';
+            document.getElementById('payment_method').value = 'Credit card';
+            document.getElementById('internet_service').value = 'DSL';
+            document.getElementById('online_security').value = 'Yes';
+            document.getElementById('tech_support').value = 'Yes';
+            document.getElementById('streaming_tv').value = 'No';
+        }
+
+        function loadExample3() {
+            // Medium risk example
+            document.getElementById('age').value = 38;
+            document.getElementById('tenure').value = 18;
+            document.getElementById('monthly_charges').value = 75.25;
+            document.getElementById('total_charges').value = 1354.50;
+            document.getElementById('contract_type').value = 'One year';
+            document.getElementById('payment_method').value = 'Bank transfer';
+            document.getElementById('internet_service').value = 'Fiber optic';
+            document.getElementById('online_security').value = 'No';
+            document.getElementById('tech_support').value = 'Yes';
+            document.getElementById('streaming_tv').value = 'Yes';
+        }
+
+        // Check API connection on page load
+        window.addEventListener('load', async () => {
+            try {
+                const response = await fetch(`${API_BASE}/health`);
+                if (response.ok) {
+                    console.log('✅ API is connected and ready!');
+                }
+            } catch (error) {
+                showError('Cannot connect to API. Please make sure the API is running on http://localhost:8000');
+            }
+        });
+    </script>
+</body>
+</html>
